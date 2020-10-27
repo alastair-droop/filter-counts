@@ -1,0 +1,14 @@
+[package]
+name = "filter-counts"
+version = "0.1.0"
+authors = ["Alastair Droop <ad33@sanger.ac.uk>"]
+edition = "2018"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+signal-hook = "0.1.16"
+structopt = "0.3.16"
+log = "0.4.11"
+stderrlog = "0.5.0"
