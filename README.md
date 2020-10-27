@@ -33,6 +33,7 @@ Each gene if filtered based on the following criteria in order:
 3. The gene variance must be > 0 (if `-i` is specified).
 
 ## Licence
+
 These tools are released under the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Building

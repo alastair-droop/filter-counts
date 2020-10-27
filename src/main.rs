@@ -4,7 +4,7 @@ use std::process;
 use signal_hook;
 use std::io::prelude::*;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use log::*;
 
 // Define the CLI:
@@ -24,6 +24,8 @@ struct Cli {
     max_zero: Option<u32>,
     #[structopt(short="i", long="filter-identical", help="Filter out genes with zero variance (i.e. with all values identical)")]
     filter_identical: bool,
+    #[structopt(short="o", long="output-metacounts", help="Extract metacounts (starting with double underscores) to file")]
+    metacount_path: Option<PathBuf>,
     #[structopt(parse(from_os_str), help="Input counts file")]
     path: PathBuf,
 }
@@ -42,7 +44,18 @@ fn main() {
     info!("{}", format!("reading counts from {}", args.path.to_str().expect("Failed to extract input path")));
     let input_file = File::open(&args.path).expect("Failed to open input file");
     let input_buffer = BufReader::new(input_file);
-
+    
+    // If necessary, attempt to open the metacount output file:
+    let mut metacount_buffer: Option<BufWriter<std::fs::File>> = None;
+    match args.metacount_path {
+        Some(p) => {
+            info!("{}", format!("saving metacounts to {}", p.to_str().expect("Failed to extract metacount path")));
+            let metacount_file = File::create(&p).expect("Failed to open metacount file");
+            metacount_buffer = Some(BufWriter::new(metacount_file));
+        },
+        _ => (),
+    }
+    
     // Get the line iterator:
     let mut line_iter = input_buffer.lines().map(|l| l.expect("Failed to read line from input file"));
 
@@ -51,6 +64,12 @@ fn main() {
     match header {
         Some(h) => {
             println!("{}", h);
+            match metacount_buffer {
+                Some(mut b) => {
+                    writeln!(b, "{}", h);
+                },
+                _ => (),
+            }
         },
         None => {
             eprintln!("No header line detected");
@@ -61,14 +80,30 @@ fn main() {
     // Record the total & filtered genes:
     let mut total_genes: u32 = 0;
     let mut passed_genes: u32 = 0;
+    let mut metagenes: u32 = 0;
     
     // Iterate over the remaining lines:
     for line in line_iter {
-        // Record the gene:
-        total_genes += 1;
         // Pull out the line, and split it into parts:
         let line_trimmed = line.trim();
         let line_data: Vec<&str> = line_trimmed.split('\t').collect();
+
+        // Check if this is a metacount gene; if so write it to the output file and move on:
+        if line_data[0].starts_with("__") {
+            metagenes += 1;
+            debug!("{}", format!("metacount {} detected", line_data[0]));
+            match metacount_buffer {
+                Some(mut b) => {
+                    writeln!(b, "{}", line_trimmed.trim_start_matches("_"));
+                    continue;
+                },
+                _ => (),
+            }
+        } else {
+            // Record the gene:
+            total_genes += 1;                
+        }
+
         let mut total: u32 = 0;
         let mut all_equal: bool = true;
         let mut n_zero = 0;
@@ -83,7 +118,7 @@ fn main() {
                 all_equal = false;
             }
             last_value = x;
-        }        
+        }
         // Filter line by minimum count:
         match args.min_count {
             Some(i) if total < i => {
@@ -113,4 +148,6 @@ fn main() {
     
     // Record the results:
     info!("{}", format!("{} / {} genes passed filter", passed_genes, total_genes));
+    info!("{}", format!("{} metagenes detected", metagenes));
+    
 }
