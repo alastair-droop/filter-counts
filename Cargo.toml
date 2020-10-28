@@ -1,6 +1,6 @@
 [package]
 name = "filter-counts"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Alastair Droop <ad33@sanger.ac.uk>"]
 edition = "2018"
 license = "MIT"
