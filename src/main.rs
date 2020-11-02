@@ -218,11 +218,11 @@ fn main() -> Result<(), Error> {
         if !gene_filtered {
             // Gene passed filtering:
             passed_genes += 1;
-            debug!("{}", format!("gene {} passed filtering", gene));
+            trace!("{}", format!("gene {} passed filtering", gene));
             println!("{}", line_trimmed);
             for i in counts.iter().enumerate() {
                 samples[i.0].passed_count += i.1;
-                if *i.1 > args.expression_threshold {
+                if *i.1 >= args.expression_threshold {
                     samples[i.0].passed_expressed += 1;
                 }
             }
